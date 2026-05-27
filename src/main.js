@@ -1,29 +1,4 @@
 /**
- * Функция для расчета выручки
- * @param purchase запись о покупке
- * @param _product карточка товара
- * @returns {number}
- */
-function calculateSimpleRevenue(purchase, _product) {
-  const discount = 1 - purchase.discount / 100;
-  return purchase.sale_price * purchase.quantity * discount;
-}
-
-/**
- * Функция для расчета бонусов
- * @param index порядковый номер в отсортированном массиве
- * @param total общее число продавцов
- * @param seller карточка продавца
- * @returns {number}
- */
-function calculateBonusByProfit(index, total, seller) {
-  if (index === 0) return seller.profit * 0.15;
-  if (index <= 2) return seller.profit * 0.1;
-  if (index === total - 1) return 0;
-  return seller.profit * 0.05;
-}
-
-/**
  * Функция для анализа данных продаж
  * @param data
  * @param options
@@ -58,10 +33,42 @@ function analyzeSalesData(data, options) {
   const sellerIndex = Object.fromEntries(sellerStats.map((s) => [s.id, s]));
   const productIndex = Object.fromEntries(data.products.map((p) => [p.sku, p]));
 
-  // TODO: расчет выручки и прибыли для каждого продавца
+  // расчет выручки и прибыли для каждого продавца
+  data.purchase_records.forEach((record) => {
+    const seller = sellerIndex[record.seller_id];
+    seller.sales_count++;
+    seller.revenue += record.total_amount;
 
-  // TODO: сортировка и назначение бонусов
+    record.items.forEach((item) => {
+      const product = productIndex[item.sku];
+      const revenue = options.calculateRevenue(item, product);
+      const profit = revenue - product.purchase_price * item.quantity;
+      seller.profit += profit;
+      seller.products_sold[item.sku] =
+        (seller.products_sold[item.sku] || 0) + item.quantity;
+    });
+  });
 
-  // временный возврат
-  return sellerStats;
+  // сортировка по прибыли
+  sellerStats.sort((a, b) => b.profit - a.profit);
+
+  // назначение бонусов и топов
+  sellerStats.forEach((seller, idx) => {
+    seller.bonus = options.calculateBonus(idx, sellerStats.length, seller);
+    seller.top_products = Object.entries(seller.products_sold)
+      .map(([sku, qty]) => ({ sku, quantity: qty }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 10);
+  });
+
+  // итоговый результат
+  return sellerStats.map((s) => ({
+    seller_id: s.id,
+    name: s.name,
+    revenue: +s.revenue.toFixed(2),
+    profit: +s.profit.toFixed(2),
+    sales_count: s.sales_count,
+    top_products: s.top_products,
+    bonus: +s.bonus.toFixed(2),
+  }));
 }
