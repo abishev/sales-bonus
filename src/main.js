@@ -1,9 +1,18 @@
-/**
- * Функция для анализа данных продаж
- * @param data
- * @param options
- * @returns {{revenue, top_products, bonus, name, sales_count, profit, seller_id}[]}
- */
+// Функция для расчета выручки
+function calculateSimpleRevenue(purchase, _product) {
+  const discount = 1 - purchase.discount / 100;
+  return purchase.sale_price * purchase.quantity * discount;
+}
+
+// Функция для расчета бонусов
+function calculateBonusByProfit(index, total, seller) {
+  if (index === 0) return seller.profit * 0.15;
+  if (index <= 2) return seller.profit * 0.1;
+  if (index === total - 1) return 0;
+  return seller.profit * 0.05;
+}
+
+// Функция для анализа данных продаж
 function analyzeSalesData(data, options) {
   // проверки
   if (
@@ -36,11 +45,15 @@ function analyzeSalesData(data, options) {
   // расчет выручки и прибыли для каждого продавца
   data.purchase_records.forEach((record) => {
     const seller = sellerIndex[record.seller_id];
+    if (!seller) return;
+
     seller.sales_count++;
     seller.revenue += record.total_amount;
 
     record.items.forEach((item) => {
       const product = productIndex[item.sku];
+      if (!product) return;
+
       const revenue = options.calculateRevenue(item, product);
       const profit = revenue - product.purchase_price * item.quantity;
       seller.profit += profit;
@@ -71,4 +84,11 @@ function analyzeSalesData(data, options) {
     top_products: s.top_products,
     bonus: +s.bonus.toFixed(2),
   }));
+}
+
+// делаем функции глобальными
+if (typeof window !== "undefined") {
+  window.calculateSimpleRevenue = calculateSimpleRevenue;
+  window.calculateBonusByProfit = calculateBonusByProfit;
+  window.analyzeSalesData = analyzeSalesData;
 }
