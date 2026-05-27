@@ -5,7 +5,8 @@
  * @returns {number}
  */
 function calculateSimpleRevenue(purchase, _product) {
-   // @TODO: Расчет выручки от операции
+  const discount = 1 - purchase.discount / 100;
+  return purchase.sale_price * purchase.quantity * discount;
 }
 
 /**
@@ -16,7 +17,10 @@ function calculateSimpleRevenue(purchase, _product) {
  * @returns {number}
  */
 function calculateBonusByProfit(index, total, seller) {
-    // @TODO: Расчет бонуса от позиции в рейтинге
+  if (index === 0) return seller.profit * 0.15;
+  if (index <= 2) return seller.profit * 0.1;
+  if (index === total - 1) return 0;
+  return seller.profit * 0.05;
 }
 
 /**
@@ -26,19 +30,38 @@ function calculateBonusByProfit(index, total, seller) {
  * @returns {{revenue, top_products, bonus, name, sales_count, profit, seller_id}[]}
  */
 function analyzeSalesData(data, options) {
-    // @TODO: Проверка входных данных
+  // проверки
+  if (
+    !data?.sellers?.length ||
+    !data?.products?.length ||
+    !data?.purchase_records?.length
+  ) {
+    throw new Error("Некорректные входные данные");
+  }
+  if (
+    typeof options?.calculateRevenue !== "function" ||
+    typeof options?.calculateBonus !== "function"
+  ) {
+    throw new Error("Не найдены необходимые функции");
+  }
 
-    // @TODO: Проверка наличия опций
+  // подготовка структур
+  const sellerStats = data.sellers.map((s) => ({
+    id: s.id,
+    name: `${s.first_name} ${s.last_name}`,
+    revenue: 0,
+    profit: 0,
+    sales_count: 0,
+    products_sold: {},
+  }));
 
-    // @TODO: Подготовка промежуточных данных для сбора статистики
+  const sellerIndex = Object.fromEntries(sellerStats.map((s) => [s.id, s]));
+  const productIndex = Object.fromEntries(data.products.map((p) => [p.sku, p]));
 
-    // @TODO: Индексация продавцов и товаров для быстрого доступа
+  // TODO: расчет выручки и прибыли для каждого продавца
 
-    // @TODO: Расчет выручки и прибыли для каждого продавца
+  // TODO: сортировка и назначение бонусов
 
-    // @TODO: Сортировка продавцов по прибыли
-
-    // @TODO: Назначение премий на основе ранжирования
-
-    // @TODO: Подготовка итоговой коллекции с нужными полями
+  // временный возврат
+  return sellerStats;
 }
